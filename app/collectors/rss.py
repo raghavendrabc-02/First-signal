@@ -7,6 +7,7 @@ from email.utils import parsedate_to_datetime
 from bs4 import BeautifulSoup
 from sqlalchemy import select
 
+from app.collectors.rss_sources import RSS_SOURCES
 from app.database.connection import SessionLocal
 from app.models.article import Article
 
@@ -106,17 +107,8 @@ async def collect_rss(url, source, niche):
 
 
 async def main():
-    await collect_rss(
-        "https://www.theguardian.com/technology/rss",
-        "The Guardian",
-        "technology",
-    )
-
-    await collect_rss(
-        "https://www.theguardian.com/business/rss",
-        "The Guardian",
-        "business",
-    )
+    for rss_source in RSS_SOURCES:
+        await collect_rss(**rss_source)
 
 
 asyncio.run(main())
