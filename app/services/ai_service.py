@@ -24,13 +24,11 @@ def _generate_ai_response(prompt):
         return response.text
 
     except Exception as error:
-        print(f"AI service error: {type(error).__name__}: {error}")
         return None
 
 
 async def generate_ai_response(prompt):
     for attempt in range(3):
-        print(f"AI request attempt {attempt + 1}/3")
 
         result = await asyncio.to_thread(
             _generate_ai_response,

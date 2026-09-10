@@ -142,11 +142,8 @@ async def research_article(article):
     }
 
 async def generate_research_brief(article):
-    print("RESEARCH FUNCTION STARTED")
     checklist = build_research_checklist(article)
-    print("CHECKLIST BUILT")
     article_text = await fetch_article_text(article.url)
-    print("ARTICLE FETCHED")
 
     if not article_text:
         return None
@@ -174,7 +171,6 @@ Do not invent information. If something cannot be confirmed from the article, cl
 """
 
     from app.services.ai_service import generate_ai_response
-    print("PROMPT LENGTH:", len(prompt))
 
     ai_result = await generate_ai_response(prompt)
 

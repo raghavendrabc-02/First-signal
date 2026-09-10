@@ -6,9 +6,8 @@ from app.database.connection import get_db
 from app.models.article import Article
 from app.ranking.ranker import select_best_article
 from app.schemas.article import ArticleResponse, ScriptResponse
+from app.services.article_service import generate_article_script
 
-from app.research.research_engine import generate_research_brief
-from app.services.script_service import generate_script
 
 router = APIRouter()
 
@@ -28,37 +27,18 @@ def get_best_news(db: Session = Depends(get_db)):
 
     return best_article
 
+
 @router.post("/news/{article_id}/script", response_model=ScriptResponse)
-async def generate_article_script(
+async def generate_article_script_endpoint(
     article_id: int,
     db: Session = Depends(get_db),
 ):
-    article = db.get(Article, article_id)
+    result, error = await generate_article_script(db, article_id)
 
-    if article is None:
-        raise HTTPException(status_code=404, detail="Article not found")
+    if error == "Article not found":
+        raise HTTPException(status_code=404, detail=error)
 
-    research_result = await generate_research_brief(article)
+    if error:
+        raise HTTPException(status_code=502, detail=error)
 
-    if research_result is None:
-        raise HTTPException(
-            status_code=502,
-            detail="Could not generate research brief",
-        )
-
-    script = await generate_script(
-        article,
-        research_result["research"],
-    )
-
-    if script is None:
-        raise HTTPException(
-            status_code=502,
-            detail="Could not generate script",
-        )
-
-    return {
-        "article_id": article.id,
-        "title": article.title,
-        "script": script,
-    }
+    return result

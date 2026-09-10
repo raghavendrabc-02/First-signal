@@ -26,19 +26,18 @@ def test_get_best_news():
     assert "url" in data
 
 @patch(
-    "app.routes.news.generate_research_brief",
+    "app.routes.news.generate_article_script",
     new_callable=AsyncMock,
 )
-@patch(
-    "app.routes.news.generate_script",
-    new_callable=AsyncMock,
-)
-def test_generate_article_script(mock_generate_script, mock_generate_research):
-    mock_generate_research.return_value = {
-        "research": "Fake research result"
-    }
-
-    mock_generate_script.return_value = "Fake Kannada script"
+def test_generate_article_script(mock_generate_article_script):
+    mock_generate_article_script.return_value = (
+        {
+            "article_id": 2,
+            "title": "Test article",
+            "script": "Fake Kannada script",
+        },
+        None,
+    )
 
     response = client.post("/news/2/script")
 
@@ -48,7 +47,7 @@ def test_generate_article_script(mock_generate_script, mock_generate_research):
 
     assert data["article_id"] == 2
     assert data["script"] == "Fake Kannada script"
-
+    
 
 def test_generate_article_script_article_not_found():
     response = client.post("/news/999999/script")
@@ -58,12 +57,16 @@ def test_generate_article_script_article_not_found():
         "detail": "Article not found"
     }
 
+
 @patch(
-    "app.routes.news.generate_research_brief",
+    "app.routes.news.generate_article_script",
     new_callable=AsyncMock,
 )
-def test_generate_article_script_research_failure(mock_generate_research):
-    mock_generate_research.return_value = None
+def test_generate_article_script_research_failure(mock_generate_article_script):
+    mock_generate_article_script.return_value = (
+        None,
+        "Could not generate research brief",
+    )
 
     response = client.post("/news/2/script")
 
