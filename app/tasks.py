@@ -1,15 +1,18 @@
 import asyncio
+import logging
 
 from app.celery_app import celery_app
 from app.collectors.rss import collect_rss
 from app.collectors.rss_sources import RSS_SOURCES
 from app.database.connection import SessionLocal
 from app.models.article import Article
-from app.ranking.ranker import select_best_article
+from app.ranking.ranker import rank_articles
 from app.research.research_engine import generate_research_brief
 from app.services.script_service import generate_script
 from app.services.telegram_service import send_telegram_message
 
+
+logger = logging.getLogger(__name__)
 
 
 async def run_pipeline():
@@ -21,47 +24,61 @@ async def run_pipeline():
     try:
         articles = db.query(Article).all()
 
-        best_article = select_best_article(articles)
+        ranked_articles = rank_articles(articles)
 
-        if best_article is None:
-            print("No suitable article found")
+        if not ranked_articles:
+            logger.warning("No suitable article found")
             return None
 
-        print(f"Best article selected: {best_article.title}")
+        for article in ranked_articles:
+            logger.info(f"Trying article: {article.title}")
 
-        research_result = await generate_research_brief(best_article)
+            research_result = await generate_research_brief(article)
 
-        if research_result is None:
-            print("Could not generate research brief")
-            return None
+            if research_result is None:
+                logger.warning(
+                    f"Could not research article: {article.title}"
+                )
+                continue
 
-        script = await generate_script(
-            best_article,
-            research_result["research"],
-        )
+            script = await generate_script(
+                article,
+                research_result["research"],
+            )
 
-        if script is None:
-            print("Could not generate script")
+            if script is None:
+                logger.warning(
+                    f"Could not generate script: {article.title}"
+                )
+                continue
+
+            logger.info(
+                f"Article successfully processed: {article.title}"
+            )
+            break
+
+        else:
+            logger.error("Could not process any ranked article")
             return None
 
         message = f"""
-        🚨 FirstSignal Daily Story
+🚨 FirstSignal Daily Story
 
-        📰 {best_article.title}
+📰 {article.title}
 
-        🎬 Script:
+🎬 Script:
 
-        {script}
-        """
+{script}
+"""
 
         await send_telegram_message(message)
 
-        print("Telegram message sent successfully")
-        print("Daily pipeline completed successfully")
+        logger.info("Telegram message sent successfully")
+        logger.info("Daily pipeline completed successfully")
 
         return {
-            "article_id": best_article.id,
-            "title": best_article.title,
+            "article_id": article.id,
+            "title": article.title,
             "script": script,
         }
 

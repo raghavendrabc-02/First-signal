@@ -11,6 +11,10 @@ from app.services.article_service import generate_article_script
 
 router = APIRouter()
 
+@router.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 
 @router.get("/news")
 def get_news(db: Session = Depends(get_db)):

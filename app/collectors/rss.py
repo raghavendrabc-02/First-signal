@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import feedparser
 import httpx
@@ -11,6 +12,8 @@ from app.collectors.rss_sources import RSS_SOURCES
 from app.database.connection import SessionLocal
 from app.models.article import Article
 
+logger = logging.getLogger(__name__)
+
 
 async def collect_rss(url, source, niche):
     try:
@@ -18,21 +21,21 @@ async def collect_rss(url, source, niche):
             response = await client.get(url, timeout=10)
             response.raise_for_status()
     except httpx.HTTPError as error:
-        print(f"{source} - {niche}: Could not fetch feed: {error}")
+        logger.error(f"{source} - {niche}: Could not fetch feed: {error}")
         return
 
     try:
         feed = feedparser.parse(response.content)
     except Exception as error:
-        print(f"{source} - {niche}: Could not parse feed: {error}")
+        logger.error(f"{source} - {niche}: Could not parse feed: {error}")
         return
 
     if feed.bozo:
-        print(f"{source} - {niche}: Could not parse feed")
+        logger.error(f"{source} - {niche}: Could not parse feed")
         return
 
     if not feed.entries:
-        print(f"{source} - {niche}: No usable entries in feed")
+        logger.warning(f"{source} - {niche}: No usable entries in feed")
         return
 
     db = SessionLocal()
@@ -49,12 +52,12 @@ async def collect_rss(url, source, niche):
             published = article_data.get("published")
 
             if not isinstance(title, str) or not title.strip():
-                print(f"{source} - {niche}: Skipping article with missing title")
+                logger.warning(f"{source} - {niche}: Skipping article with missing title")
                 skipped += 1
                 continue
 
             if not isinstance(article_url, str) or not article_url.strip():
-                print(f"{source} - {niche}: Skipping article with missing link")
+                logger.warning(f"{source} - {niche}: Skipping article with missing link")
                 skipped += 1
                 continue
 
@@ -62,14 +65,14 @@ async def collect_rss(url, source, niche):
             article_url = article_url.strip()
 
             if not isinstance(published, str) or not published.strip():
-                print(f"{source} - {niche}: Skipping article with missing published date")
+                logger.warning(f"{source} - {niche}: Skipping article with missing published date")
                 skipped += 1
                 continue
 
             try:
                 published_at = parsedate_to_datetime(published)
             except (TypeError, ValueError):
-                print(f"{source} - {niche}: Skipping article with invalid published date")
+                logger.warning(f"{source} - {niche}: Skipping article with invalid published date")
                 skipped += 1
                 continue
 
@@ -106,8 +109,7 @@ async def collect_rss(url, source, niche):
     finally:
         db.close()
 
-    print(f"{source} - {niche}: Saved {saved}, Skipped {skipped}")
-
+    logger.info(f"{source} - {niche}: Saved {saved}, Skipped {skipped}")
 
 async def main():
     for rss_source in RSS_SOURCES:

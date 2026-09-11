@@ -211,6 +211,17 @@ def _published_sort_value(article):
         published_at = published_at.replace(tzinfo=timezone.utc)
     return published_at.timestamp()
 
+def rank_articles(articles, now=None):
+    return sorted(
+        articles,
+        key=lambda article: (
+            calculate_weighted_score(article, now),
+            calculate_hook_potential_score(article),
+            calculate_freshness_score(article, now),
+            _published_sort_value(article),
+        ),
+        reverse=True,
+    )
 
 def select_best_article(articles, now=None):
     articles = list(articles)

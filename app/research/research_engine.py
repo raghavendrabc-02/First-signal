@@ -1,7 +1,10 @@
 import re
+import logging
 
 import httpx
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 
 NUMBER_PATTERN = re.compile(r"\d|%|₹|\$|\brs\b|\bcrore\b|\bmillion\b|\bbillion\b")
@@ -30,7 +33,7 @@ async def fetch_article_text(url):
             response = await client.get(url, timeout=10)
             response.raise_for_status()
     except httpx.HTTPError as error:
-        print(f"Could not fetch article: {type(error).__name__}: {error}")
+        logger.error(f"Could not fetch article: {type(error).__name__}: {error}")
         return None
 
     soup = BeautifulSoup(response.text, "html.parser")
