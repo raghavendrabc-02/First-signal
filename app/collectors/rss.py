@@ -39,6 +39,8 @@ async def collect_rss(url, source, niche):
 
     saved = 0
     skipped = 0
+    seen_urls = set()
+
 
     try:
         for article_data in feed.entries:
@@ -75,9 +77,10 @@ async def collect_rss(url, source, niche):
                 select(Article).where(Article.url == article_url)
             )
 
-            if existing:
+            if existing or article_url in seen_urls:
                 skipped += 1
                 continue
+            seen_urls.add(article_url)
 
             description = article_data.get("description", "")
             if not isinstance(description, str):
@@ -111,4 +114,5 @@ async def main():
         await collect_rss(**rss_source)
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
