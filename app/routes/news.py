@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
@@ -12,7 +12,8 @@ from app.services.article_service import generate_article_script
 router = APIRouter()
 
 @router.get("/health")
-def health_check():
+def health_check(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
     return {"status": "ok"}
 
 
