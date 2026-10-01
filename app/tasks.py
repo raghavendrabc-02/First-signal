@@ -1,7 +1,6 @@
 import asyncio
 import logging
 
-from app.celery_app import celery_app
 from app.collectors.rss import collect_rss
 from app.collectors.rss_sources import RSS_SOURCES
 from app.database.connection import SessionLocal
@@ -85,7 +84,3 @@ async def run_pipeline():
     finally:
         db.close()
 
-
-@celery_app.task
-def run_daily_pipeline():
-    return asyncio.run(run_pipeline())
