@@ -29,36 +29,34 @@ async def run_pipeline():
             logger.warning("No suitable article found")
             return None
 
-        for article in ranked_articles:
-            logger.info(f"Trying article: {article.title}")
+        article = ranked_articles[0]
 
-            research_result = await generate_research_brief(article)
+        logger.info(
+            f"Selected best article: {article.title}"
+        )
 
-            if research_result is None:
-                logger.warning(
-                    f"Could not research article: {article.title}"
-                )
-                continue
+        research_result = await generate_research_brief(article)
 
-            script = await generate_script(
-                article,
-                research_result["research"],
+        if research_result is None:
+            logger.warning(
+                f"Could not research article: {article.title}"
             )
-
-            if script is None:
-                logger.warning(
-                    f"Could not generate script: {article.title}"
-                )
-                continue
-
-            logger.info(
-                f"Article successfully processed: {article.title}"
-            )
-            break
-
-        else:
-            logger.error("Could not process any ranked article")
             return None
+
+        script = await generate_script(
+            article,
+            research_result["research"],
+        )
+
+        if script is None:
+            logger.warning(
+                f"Could not generate script: {article.title}"
+            )
+            return None
+
+        logger.info(
+            f"Article successfully processed: {article.title}"
+        )
 
         message = f"""
 🚨 FirstSignal Daily Story

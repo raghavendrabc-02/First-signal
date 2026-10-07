@@ -35,21 +35,36 @@ def _generate_ai_response(prompt):
         logger.error(
             f"Gemini generation failed: {type(error).__name__}: {error}"
         )
-        return None
+        raise
 
 
 async def generate_ai_response(prompt):
     for attempt in range(3):
-
-        result = await asyncio.to_thread(
-            _generate_ai_response,
-            prompt,
-)
-
-        if result is not None:
+        try:
+            result = await asyncio.to_thread(
+                _generate_ai_response,
+                prompt,
+            )
             return result
 
-        if attempt < 2:
-            await asyncio.sleep(2)
+        except Exception as error:
+            error_text = str(error)
 
-    return None
+            if "429" in error_text or "RESOURCE_EXHAUSTED" in error_text:
+                logger.error(
+                    "Gemini quota exhausted. Stopping retries."
+                )
+                return None
+
+            if attempt < 2:
+                logger.warning(
+                    f"Gemini temporary failure. Retrying... "
+                    f"attempt {attempt + 1}/3"
+                )
+                await asyncio.sleep(2)
+                continue
+
+            logger.error(
+                "Gemini failed after 3 attempts."
+            )
+            return None
