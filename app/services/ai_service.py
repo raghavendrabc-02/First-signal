@@ -23,7 +23,13 @@ def _generate_ai_response(prompt):
             contents=prompt,
         )
 
-        return response.text
+        response_text = response.text
+
+        if not response_text:
+            logger.error("Gemini returned an empty response")
+            return None
+
+        return response_text
 
     except Exception as error:
         logger.error(
