@@ -1,8 +1,10 @@
 import os
 import asyncio
-
 from dotenv import load_dotenv
 from google import genai
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -24,6 +26,9 @@ def _generate_ai_response(prompt):
         return response.text
 
     except Exception as error:
+        logger.error(
+            f"Gemini generation failed: {type(error).__name__}: {error}"
+        )
         return None
 
 
