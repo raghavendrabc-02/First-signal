@@ -14,12 +14,12 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not set")
 
 
-def _generate_ai_response(prompt):
+def _generate_ai_response(prompt, model):
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model=model,
             contents=prompt,
         )
 
@@ -44,6 +44,7 @@ async def generate_ai_response(prompt):
             result = await asyncio.to_thread(
                 _generate_ai_response,
                 prompt,
+                "gemini-3.6-flash"
             )
             return result
 
@@ -52,9 +53,21 @@ async def generate_ai_response(prompt):
 
             if "429" in error_text or "RESOURCE_EXHAUSTED" in error_text:
                 logger.error(
-                    "Gemini quota exhausted. Stopping retries."
+                    "Gemini 3.6 quota exhausted. Falling back to Gemini 3.5 Flash-Lite."
                 )
-                return None
+                try:
+                    result = await asyncio.to_thread(
+                        _generate_ai_response,
+                        prompt,
+                        "gemini-3.5-flash-lite",
+                    )
+                    return result
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Gemini fallback failed: "
+                        f"{type(fallback_error).__name__}: {fallback_error}"
+                    )
+                    return None
 
             if attempt < 2:
                 logger.warning(
