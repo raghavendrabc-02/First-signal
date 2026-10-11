@@ -149,6 +149,7 @@ async def generate_research_brief(article):
     article_text = await fetch_article_text(article.url)
 
     if not article_text:
+        logger.error(f"Article page had no readable text: {article.url}")
         return None
 
     prompt = f"""
@@ -176,6 +177,9 @@ Do not invent information. If something cannot be confirmed from the article, cl
     from app.services.ai_service import generate_ai_response
 
     ai_result = await generate_ai_response(prompt)
+
+    if ai_result is None:
+        logger.error(f"Gemini could not generate research brief: {article.title}")
 
     return {
         "article_id": article.id,

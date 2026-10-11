@@ -14,3 +14,6 @@ class Article(Base):
     niche: Mapped[str] = mapped_column()
     published_at: Mapped[datetime] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Set only after the script was delivered to Telegram successfully.
+    delivered_at: Mapped[datetime | None] = mapped_column()
+    telegram_message_id: Mapped[int | None] = mapped_column()

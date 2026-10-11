@@ -19,8 +19,28 @@ async def send_telegram_message(message):
         "text": message,
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=payload, timeout=10)
-        response.raise_for_status()
+    # httpx error messages include the request URL, which contains the bot
+    # token, so only the error type is surfaced.
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=10)
+    except httpx.HTTPError as error:
+        raise RuntimeError(
+            f"Telegram request failed: {type(error).__name__}"
+        ) from None
 
-    return response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        data = {}
+
+    if not isinstance(data, dict):
+        data = {}
+
+    if response.status_code != 200 or data.get("ok") is not True:
+        description = data.get("description", "no description returned")
+        raise RuntimeError(
+            f"Telegram sendMessage failed: HTTP {response.status_code}: {description}"
+        )
+
+    return data
